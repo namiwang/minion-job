@@ -1,0 +1,28 @@
+{
+  "name": "minion-job",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nanowang/minion-job.git"
+  },
+  "author": "Nano WANG",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nanowang/minion-job/issues"
+  },
+  "homepage": "https://github.com/nanowang/minion-job",
+  "devDependencies": {
+    "browserify": "^10.2.1",
+    "grunt": "^0.4.5",
+    "grunt-browserify": "^3.8.0",
+    "grunt-contrib-coffee": "^0.13.0"
+  },
+  "dependencies": {
+    "node-uuid": "^1.4.3"
+  }
+}
