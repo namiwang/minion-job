@@ -1,5 +1,5 @@
 (function() {
-  if (window) {
+  if (typeof window !== "undefined" && window !== null) {
     window.MinionJob = require('./lib/minion-job');
   } else {
     if (typeof module !== "undefined" && module !== null) {

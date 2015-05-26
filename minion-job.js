@@ -1,6 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 (function() {
-  if (window) {
+  if (typeof window !== "undefined" && window !== null) {
     window.MinionJob = require('./lib/minion-job');
   } else {
     if (typeof module !== "undefined" && module !== null) {
@@ -182,7 +182,7 @@
   var utilities;
 
   utilities = {
-    is_in_browser: (window ? true : false)
+    is_in_browser: (typeof window !== "undefined" && window !== null ? true : false)
   };
 
   module.exports = utilities;
