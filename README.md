@@ -2,6 +2,12 @@
 
 Multi-process, multi-queue background processing in both node and browser.
 
+## Install
+
+```
+npm install minion-job --save
+```
+
 ## Usage
 
 ```
@@ -19,4 +25,8 @@ job.perform_later(dataset)
 
 Using Web Worker in browser and [node-webworker-threads](https://github.com/audreyt/node-webworker-threads) in node as multi-process implantation.
 
-Using Loki.js for in-memory data storage in both browser and node.
+Using [Loki.js](http://lokijs.org/) for in-memory data storage in both browser and node.
+
+## More
+
+Please feel free to create issues for bugs, feature requests and other discussions.

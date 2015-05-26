@@ -105,17 +105,32 @@
       if (this.running_jobs.length >= this.limit) {
         return;
       }
-      this.running_jobs.push(poped_job = this.jobs.shift());
+      if (!(poped_job = this.jobs.shift())) {
+        return;
+      }
+      this.running_jobs.push(poped_job);
       worker_blob_url = window.URL.createObjectURL(poped_job.job_object.perform_worker_blob);
       worker = poped_job.worker = new Worker(worker_blob_url);
-      worker.addEventListener('message', function(e) {
-        return console.log(e.data);
-      }, false);
+      worker.addEventListener('message', (function(_this) {
+        return function(e) {
+          switch (e.data.msg) {
+            case 'minion_job_done':
+              return _this.finish_job(e.data.uuid);
+          }
+        };
+      })(this), false);
       return worker.postMessage({
         msg: 'minion_job_start',
         uuid: poped_job.uuid,
         args: poped_job.args
       });
+    };
+
+    Queue.prototype.finish_job = function(uuid) {
+      this.running_jobs = this.running_jobs.filter(function(job) {
+        return job.uuid !== uuid;
+      });
+      return this.try_to_run_more();
     };
 
     return Queue;
