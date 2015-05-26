@@ -1,14 +1,15 @@
-# minion-job
+# MinionJob
 
-Multi-process, multi-queue background processing for both node and browser.
+Multi-process, multi-queue background processing in both node and browser.
 
 ## Usage
 
 ```
 var job = new MinionJob.Job(
   function(dataset){
-    some_intense_job(dataset)
-  }
+    do_some_intense_work(dataset)
+  },
+  'urgent_queue'
 )
 
 job.perform_later(dataset)
