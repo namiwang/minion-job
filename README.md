@@ -36,7 +36,7 @@ var job = new MinionJob.Job(
   'urgent_queue'
 )
 
-job.perform_later('abc')
+job.perform_later('dataset')
 ```
 
 ## Inside
