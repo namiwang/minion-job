@@ -1,7 +1,7 @@
 Queue = require './queue'
 
 MinionJob = global.MinionJob = 
-  version: '0.0.1'
+  version: '0.0.2'
   Job: require './job'
   Queue: Queue
   utilities: require './utilities'

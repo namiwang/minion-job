@@ -1,6 +1,6 @@
 {
   "name": "minion-job",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Multi-process, multi-queue background processing in both node and browser.",
   "main": "index.js",
   "scripts": {
