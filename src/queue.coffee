@@ -1,4 +1,8 @@
 UUID = require 'node-uuid'
+# unless MinionJob.utilities.is_in_browser
+# at this time, MinionJob.utilities.is_in_browser is still not available
+unless window?
+  FakeWorker = require('webworker-threads').Worker
 
 class Queue
   constructor: (@name) ->
@@ -10,13 +14,18 @@ class Queue
     @jobs.push { uuid: UUID.v4(), job_object: job, args: args }
     @try_to_run_more()
 
-  try_to_run_more: () ->
-    return if @running_jobs.length >= @limit
-    return unless poped_job = @jobs.shift()
-    @running_jobs.push poped_job
+  next_job: () ->
+    if poped_job = @jobs.shift()
+      return poped_job
+    else
+      return null
 
-    worker_blob_url = window.URL.createObjectURL poped_job.job_object.perform_worker_blob
-    worker = poped_job.worker = new Worker worker_blob_url
+  run_job: (job) ->
+    if MinionJob.utilities.is_in_browser
+      worker_blob_url = window.URL.createObjectURL job.job_object.perform_function_worker_blob
+      worker = job.worker = new Worker worker_blob_url
+    else
+      worker = job.worker = new FakeWorker job.job_object.perform_function_worker
 
     worker.addEventListener 'message', (e) =>
       switch e.data.msg
@@ -24,7 +33,13 @@ class Queue
           @finish_job e.data.uuid
     , false
 
-    worker.postMessage { msg: 'minion_job_start', uuid: poped_job.uuid, args: poped_job.args }
+    worker.postMessage { msg: 'minion_job_start', uuid: job.uuid, args: job.args }
+
+  try_to_run_more: () ->
+    return null if @running_jobs.length >= @limit
+    return unless next_job = @next_job()
+    @running_jobs.push next_job
+    @run_job next_job
 
   finish_job: (uuid) ->
     @running_jobs = @running_jobs.filter (job) -> job.uuid isnt uuid

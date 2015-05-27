@@ -1,12 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 (function() {
-  if (typeof window !== "undefined" && window !== null) {
-    window.MinionJob = require('./lib/minion-job');
-  } else {
-    if (typeof module !== "undefined" && module !== null) {
-      module.exports = require('./lib/minion-job');
-    }
-  }
+  module.exports = require('./lib/minion-job');
 
 }).call(this);
 
@@ -24,7 +18,12 @@
       }
       this.perform_later = bind(this.perform_later, this);
       this.queue = MinionJob.queues.find_or_create_by_name(queue_name);
-      this.build_blob();
+      this.build_perform_function_worker_code();
+      if (MinionJob.utilities.is_in_browser) {
+        this.build_perform_function_worker_blob();
+      } else {
+        this.build_perform_function_worker();
+      }
     }
 
     Job.prototype.perform_now = function() {
@@ -39,10 +38,16 @@
       return this.queue.push_job(this, args);
     };
 
-    Job.prototype.build_blob = function() {
-      var worker_for_job_code;
-      worker_for_job_code = "var perform_function = " + this.perform_function + ";\nself.addEventListener('message', function(e) {\n  var data = e.data;\n  switch (data.msg) {\n    case 'minion_job_start':\n      var perform_promise = new Promise(function(resolve, reject){\n        perform_function.apply(self, data.args);\n        resolve();\n        // TODO reject when error occurs\n      });\n      perform_promise\n        .then(\n          function(){\n            self.postMessage({msg: 'minion_job_done', uuid: data.uuid});\n            self.close();\n          },\n          function(){}\n        )\n  }\n}, false);";
-      return this.perform_worker_blob = new Blob([worker_for_job_code]);
+    Job.prototype.build_perform_function_worker_code = function() {
+      return this.perform_function_worker_code = "var perform_function = " + this.perform_function + ";\nself.addEventListener('message', function(e) {\n  var data = e.data;\n  switch (data.msg) {\n    case 'minion_job_start':\n      var perform_promise = new Promise(function(resolve, reject){\n        perform_function.apply(self, data.args);\n        resolve();\n        // TODO reject when error occurs\n      });\n      perform_promise\n        .then(\n          function(){\n            self.postMessage({msg: 'minion_job_done', uuid: data.uuid});\n            self.close();\n          },\n          function(){}\n        )\n  }\n}, false);";
+    };
+
+    Job.prototype.build_perform_function_worker = function() {
+      return this.perform_function_worker = Function(this.perform_function_worker_code);
+    };
+
+    Job.prototype.build_perform_function_worker_blob = function() {
+      return this.perform_function_worker_blob = new Blob([this.perform_function_worker_code]);
     };
 
     return Job;
@@ -54,12 +59,13 @@
 }).call(this);
 
 },{}],3:[function(require,module,exports){
+(function (global){
 (function() {
   var MinionJob, Queue;
 
   Queue = require('./queue');
 
-  MinionJob = this.MinionJob = {
+  MinionJob = global.MinionJob = {
     version: '0.0.1',
     Job: require('./job'),
     Queue: Queue,
@@ -74,12 +80,17 @@
 
 }).call(this);
 
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./job":2,"./queue":4,"./queues":5,"./utilities":6}],4:[function(require,module,exports){
 (function() {
-  var Queue, UUID,
+  var FakeWorker, Queue, UUID,
     slice = [].slice;
 
   UUID = require('node-uuid');
+
+  if (typeof window === "undefined" || window === null) {
+    FakeWorker = require('webworker-threads').Worker;
+  }
 
   Queue = (function() {
     function Queue(name) {
@@ -100,17 +111,23 @@
       return this.try_to_run_more();
     };
 
-    Queue.prototype.try_to_run_more = function() {
-      var poped_job, worker, worker_blob_url;
-      if (this.running_jobs.length >= this.limit) {
-        return;
+    Queue.prototype.next_job = function() {
+      var poped_job;
+      if (poped_job = this.jobs.shift()) {
+        return poped_job;
+      } else {
+        return null;
       }
-      if (!(poped_job = this.jobs.shift())) {
-        return;
+    };
+
+    Queue.prototype.run_job = function(job) {
+      var worker, worker_blob_url;
+      if (MinionJob.utilities.is_in_browser) {
+        worker_blob_url = window.URL.createObjectURL(job.job_object.perform_function_worker_blob);
+        worker = job.worker = new Worker(worker_blob_url);
+      } else {
+        worker = job.worker = new FakeWorker(job.job_object.perform_function_worker);
       }
-      this.running_jobs.push(poped_job);
-      worker_blob_url = window.URL.createObjectURL(poped_job.job_object.perform_worker_blob);
-      worker = poped_job.worker = new Worker(worker_blob_url);
       worker.addEventListener('message', (function(_this) {
         return function(e) {
           switch (e.data.msg) {
@@ -121,9 +138,21 @@
       })(this), false);
       return worker.postMessage({
         msg: 'minion_job_start',
-        uuid: poped_job.uuid,
-        args: poped_job.args
+        uuid: job.uuid,
+        args: job.args
       });
+    };
+
+    Queue.prototype.try_to_run_more = function() {
+      var next_job;
+      if (this.running_jobs.length >= this.limit) {
+        return null;
+      }
+      if (!(next_job = this.next_job())) {
+        return;
+      }
+      this.running_jobs.push(next_job);
+      return this.run_job(next_job);
     };
 
     Queue.prototype.finish_job = function(uuid) {
@@ -141,7 +170,7 @@
 
 }).call(this);
 
-},{"node-uuid":7}],5:[function(require,module,exports){
+},{"node-uuid":8,"webworker-threads":7}],5:[function(require,module,exports){
 (function() {
   var queues;
 
@@ -190,6 +219,8 @@
 }).call(this);
 
 },{}],7:[function(require,module,exports){
+
+},{}],8:[function(require,module,exports){
 //     uuid.js
 //
 //     Copyright (c) 2010-2012 Robert Kieffer

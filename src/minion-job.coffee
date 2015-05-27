@@ -1,6 +1,6 @@
 Queue = require './queue'
 
-MinionJob = @MinionJob =
+MinionJob = global.MinionJob = 
   version: '0.0.1'
   Job: require './job'
   Queue: Queue

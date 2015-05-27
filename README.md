@@ -10,7 +10,8 @@ npm install minion-job --save
 
 ## Usage
 
-```
+### In browser
+```javascript
 var job = new MinionJob.Job(
   function(dataset){
     do_some_intense_work(dataset)
@@ -19,6 +20,23 @@ var job = new MinionJob.Job(
 )
 
 job.perform_later(dataset)
+```
+
+### In Node.js
+
+Well, it's almost exactly the same code as in browser.
+
+```javascript
+var MinionJob = require('minion-job')
+
+var job = new MinionJob.Job(
+  function(dataset){
+    do_some_intense_work(dataset)
+  },
+  'urgent_queue'
+)
+
+job.perform_later('abc')
 ```
 
 ## Inside

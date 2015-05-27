@@ -28,6 +28,8 @@ module.exports = (grunt) ->
         ]
     browserify:
       bundle:
+        options:
+          ignore: [ 'webworker-threads' ]
         files: [
           src: [ 'index.js' ]
           dest: 'minion-job.js'
